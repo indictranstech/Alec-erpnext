@@ -233,4 +233,5 @@ cur_frm.cscript.on_submit = function(doc, cdt, cdn) {
 
 {% include 'selling/custom_so_cancel.js' %}
 {% include 'frappe_subscription/frappe_subscription/ec_sales_order.js' %}
+{% include 'erpnext_controllers/erpnext_controllers/price_floor_controls.js' %}
 cur_frm.script_manager.make(erpnext.selling.CustomSoCancel);
