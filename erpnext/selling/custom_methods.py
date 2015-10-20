@@ -681,3 +681,9 @@ def set_alternative_item_details(alter_dic,doc):
 		c_doc.save(ignore_permissions=True)
 
 	return c_doc
+	
+@frappe.whitelist()
+def get_price_floor(item_code, warehouse):
+	valuation = frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse,}, "valuation_rate")
+	return valuation
+
