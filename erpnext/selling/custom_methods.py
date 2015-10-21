@@ -681,9 +681,18 @@ def set_alternative_item_details(alter_dic,doc):
 		c_doc.save(ignore_permissions=True)
 
 	return c_doc
-	
+
 @frappe.whitelist()
 def get_price_floor(item_code, warehouse):
 	valuation = frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse,}, "valuation_rate")
-	return valuation
+	if not valuation: 
+		valuation = frappe.db.get_value("Item", {"item_code": item_code,}, "last_purchase_rate")
 
+	min_markup = frappe.db.get_value("Selling Controls", None, "minimum_markup")
+
+	return valuation + (float(min_markup) / 100 * float(valuation))
+
+@frappe.whitelist()
+def get_alternative_item_options(item_code):
+	items = frappe.db.get_values("Quote Item", {"parent": item_code}, "item_code", as_dict = 1)
+	return items;
