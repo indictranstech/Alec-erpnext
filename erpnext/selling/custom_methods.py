@@ -7,7 +7,6 @@ from frappe.model.mapper import get_mapped_doc
 from frappe import msgprint, _, throw
 from erpnext.setup.utils import get_company_currency
 import frappe.defaults
-from frappe.desk.form.utils import get_linked_docs
 import json
 
 #check batch is of respective item code
@@ -651,6 +650,58 @@ def cancel_jv(doc_name,jv_list):
 def cancel_sales_order_self(doctype,name):
 	my_doc = frappe.get_doc(doctype,name)
 	my_doc.cancel()
+	
+@frappe.whitelist()
+def get_linked_docs(doctype, name, metadata_loaded=None, no_metadata=False):
+        if not metadata_loaded: metadata_loaded = []
+        meta = frappe.desk.form.meta.get_meta(doctype)
+        linkinfo = meta.get("__linked_with")
+        results = {}
+
+        if not linkinfo:
+                return results
+
+        me = frappe.db.get_value(doctype, name, ["parenttype", "parent"], as_dict=True)
+        for dt, link in linkinfo.items():
+                link["doctype"] = dt
+                link_meta_bundle = frappe.desk.form.load.get_meta_bundle(dt)
+                linkmeta = link_meta_bundle[0]
+                if not linkmeta.get("issingle"):
+                        fields = [d.fieldname for d in linkmeta.get("fields", {"in_list_view":1,
+                                "fieldtype": ["not in", ["Image", "HTML", "Button", "Table"]]})] \
+                                + ["name", "modified", "docstatus"]
+
+                        fields = ["`tab{dt}`.`{fn}`".format(dt=dt, fn=sf.strip()) for sf in fields if sf]
+
+                        try:
+                                if link.get("get_parent"):
+                                        if me and me.parent and me.parenttype == dt:
+                                                ret = frappe.get_list(doctype=dt, fields=fields,
+                                                        filters=[[dt, "name", '=', me.parent]])
+                                        else:
+                                                ret = None
+
+                                elif link.get("child_doctype"):
+                                        ret = frappe.get_list(doctype=dt, fields=fields,
+                                                filters=[[link.get('child_doctype'), link.get("fieldname"), '=', name]])
+
+                                else:
+                                        ret = frappe.get_list(doctype=dt, fields=fields,
+                                                filters=[[dt, link.get("fieldname"), '=', name]])
+
+                        except frappe.PermissionError:
+                                if frappe.local.message_log:
+                                        frappe.local.message_log.pop()
+
+                                continue
+
+                        if ret:
+                                results[dt] = ret
+
+                        if not no_metadata and not dt in metadata_loaded:
+                                frappe.local.response.docs.extend(link_meta_bundle)
+
+        return results
 
 
 @frappe.whitelist()
@@ -687,7 +738,8 @@ def get_price_floor(item_code, warehouse):
 	valuation = frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse,}, "valuation_rate")
 	if not valuation: 
 		valuation = frappe.db.get_value("Item", {"item_code": item_code,}, "last_purchase_rate")
-
+	if not valuation:
+		valuation = 0;	
 	min_markup = frappe.db.get_value("Selling Controls", None, "minimum_markup")
 
 	return valuation + (float(min_markup) / 100 * float(valuation))
