@@ -6,6 +6,10 @@ def get_data():
 			"label": _("Documents"),
 			"icon": "icon-star",
 			"items": [
+				{	"type": "doctype",
+					"name": "Prospect",
+					"description": _("Database of potential leads."),
+				},
 				{
 					"type": "doctype",
 					"name": "Lead",
@@ -13,13 +17,13 @@ def get_data():
 				},
 				{
 					"type": "doctype",
-					"name": "Customer",
-					"description": _("Customer database."),
+					"name": "Opportunity",
+					"description": _("Potential opportunities for selling."),
 				},
 				{
 					"type": "doctype",
-					"name": "Opportunity",
-					"description": _("Potential opportunities for selling."),
+					"name": "Customer",
+					"description": _("Customer database."),
 				},
 				{
 					"type": "doctype",
