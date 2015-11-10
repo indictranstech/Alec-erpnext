@@ -11,14 +11,14 @@ erpnext.ProspectController = frappe.ui.form.Controller.extend({
 		erpnext.toggle_naming_series();
 
 		if(!this.frm.doc.__islocal) {
-			this.frm.add_custom_button(__("Convert to Lead"), this.create_customer,
+			this.frm.add_custom_button(__("Convert to Lead"), this.create_lead,
 				frappe.boot.doctype_icons["Lead"], "btn-big");
 		}
 	},
 
-	create_customer: function() {
+	create_lead: function() {
 		frappe.model.open_mapped_doc({
-			method: "erpnext.crm.doctype.prospect.prospect.make_customer",
+			method: "erpnext.crm.doctype.prospect.prospect.make_lead",
 			frm: cur_frm
 		})
 	}

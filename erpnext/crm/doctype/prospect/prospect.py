@@ -37,7 +37,7 @@ class Prospect(SellingController):
 		if self.email_id:
 			validate_email_add(self.email_id, True)
 
-			if self.email_id == self.lead_owner:
+			if self.email_id == self.prospect_owner:
 				# Lead Owner cannot be same as the Lead
 				self.lead_owner = None
 
@@ -46,11 +46,11 @@ class Prospect(SellingController):
 
 	def add_calendar_event(self, opts=None, force=False):
 		pass
-		
+
 	def check_email_id_is_unique(self):
 		if self.email_id:
 			# validate email is unique
-			duplicate_leads = frappe.db.sql_list("""select name from tabLead 
+			duplicate_leads = frappe.db.sql_list("""select name from tabProspect 
 				where email_id=%s and name!=%s""", (self.email_id, self.name))
 
 			if duplicate_leads:
@@ -63,91 +63,28 @@ class Prospect(SellingController):
 
 		self.delete_events()
 
-	def has_customer(self):
-		return frappe.db.get_value("Customer", {"lead_name": self.name})
-
-	def has_opportunity(self):
-		return frappe.db.get_value("Opportunity", {"lead": self.name, "status": ["!=", "Lost"]})
+	def has_lead(self):
+		return frappe.db.get_value("Lead", {"prospect_name": self.name})
 
 @frappe.whitelist()
-def make_customer(source_name, target_doc=None):
-	return _make_customer(source_name, target_doc)
+def make_lead(source_name, target_doc=None):
+	return _make_lead(source_name, target_doc)
 
-def _make_customer(source_name, target_doc=None, ignore_permissions=False):
+def _make_lead(source_name, target_doc=None, ignore_permissions=False):
 	def set_missing_values(source, target):
-		if source.company_name:
-			target.customer_type = "Company"
-			target.customer_name = source.company_name
-		else:
-			target.customer_type = "Individual"
-			target.customer_name = source.lead_name
-
-		target.customer_group = frappe.db.get_default("customer_group")
-
-	doclist = get_mapped_doc("Lead", source_name,
-		{"Lead": {
-			"doctype": "Customer",
-			"field_map": {
-				"name": "lead_name",
-				"company_name": "customer_name",
-				"contact_no": "phone_1",
-				"fax": "fax_1"
-			}
-		}}, target_doc, set_missing_values, ignore_permissions=ignore_permissions)
-
+		target.lead_name = source.prospect_name
+		target.source = source.prospect_owner
+		target.company_name = source.company_name
+		target.contact_no = source.phone
+	doclist = get_mapped_doc("Prospect", source_name,
+			{"Prospect": {
+				"doctype": "Lead",
+				"field_map": {
+					"lead_name": "prospect_name",
+					"source": "prospect_owner",
+					"company_name": "company_name",
+					"contact_no": "phone"
+					}
+			}}, target_doc, set_missing_values, ignore_permissions=ignore_permissions)
+	
 	return doclist
-
-@frappe.whitelist()
-def make_opportunity(source_name, target_doc=None):
-	target_doc = get_mapped_doc("Lead", source_name,
-		{"Lead": {
-			"doctype": "Opportunity",
-			"field_map": {
-				"campaign_name": "campaign",
-				"doctype": "enquiry_from",
-				"name": "lead",
-				"lead_name": "contact_display",
-				"company_name": "customer_name",
-				"email_id": "contact_email",
-				"mobile_no": "contact_mobile"
-			}
-		}}, target_doc)
-
-	return target_doc
-
-@frappe.whitelist()
-def make_quotation(source_name, target_doc=None):
-	target_doc = get_mapped_doc("Lead", source_name,
-		{"Lead": {
-			"doctype": "Quotation",
-			"field_map": {
-				"name": "lead",
-				"lead_name": "customer_name",
-			}
-		}}, target_doc)
-	target_doc.quotation_to = "Lead"
-
-	return target_doc
-
-@frappe.whitelist()
-def get_lead_details(lead):
-	if not lead: return {}
-
-	from erpnext.accounts.party import set_address_details
-	out = frappe._dict()
-
-	lead_doc = frappe.get_doc("Lead", lead)
-	lead = lead_doc
-
-	out.update({
-		"territory": lead.territory,
-		"customer_name": lead.company_name or lead.lead_name,
-		"contact_display": lead.lead_name,
-		"contact_email": lead.email_id,
-		"contact_mobile": lead.mobile_no,
-		"contact_phone": lead.phone,
-	})
-
-	set_address_details(out, lead, "Lead")
-
-	return out
