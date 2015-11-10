@@ -76,14 +76,13 @@ def _make_lead(source_name, target_doc=None, ignore_permissions=False):
 		target.source = source.prospect_owner
 		target.company_name = source.company_name
 		target.contact_no = source.phone
+		target.type = source.prospect_type
+		target.lead_owner = source.prospect_owner
 	doclist = get_mapped_doc("Prospect", source_name,
 			{"Prospect": {
 				"doctype": "Lead",
 				"field_map": {
 					"lead_name": "prospect_name",
-					"source": "prospect_owner",
-					"company_name": "company_name",
-					"contact_no": "phone"
 					}
 			}}, target_doc, set_missing_values, ignore_permissions=ignore_permissions)
 	
