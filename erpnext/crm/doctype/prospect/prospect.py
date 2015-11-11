@@ -18,7 +18,8 @@ class Prospect(SellingController):
 		return '{0}: {1}'.format(_(self.status), self.prospect_name)
 
 	def onload(self):
-		pass
+		lead = frappe.db.get_value("Lead", {"lead_name": self.prospect_name})
+		self.get("__onload").is_lead = lead
 
 	def validate(self):
 		self._prev = frappe._dict({
@@ -66,6 +67,8 @@ class Prospect(SellingController):
 	def has_lead(self):
 		return frappe.db.get_value("Lead", {"prospect_name": self.name})
 
+
+
 @frappe.whitelist()
 def make_lead(source_name, target_doc=None):
 	return _make_lead(source_name, target_doc)
@@ -78,6 +81,7 @@ def _make_lead(source_name, target_doc=None, ignore_permissions=False):
 		target.contact_no = source.phone
 		target.type = source.prospect_type
 		target.lead_owner = source.prospect_owner
+		source.status = "Qualified"
 	doclist = get_mapped_doc("Prospect", source_name,
 			{"Prospect": {
 				"doctype": "Lead",

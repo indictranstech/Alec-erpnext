@@ -10,7 +10,7 @@ erpnext.ProspectController = frappe.ui.form.Controller.extend({
 		var doc = this.frm.doc;
 		erpnext.toggle_naming_series();
 
-		if(!this.frm.doc.__islocal) {
+		if(!this.frm.doc.__islocal && this.frm.doc.__onload && !this.frm.doc.__onload.is_lead) {
 			this.frm.add_custom_button(__("Convert to Lead"), this.create_lead,
 				frappe.boot.doctype_icons["Lead"], "btn-big");
 		}
