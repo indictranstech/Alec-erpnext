@@ -67,8 +67,6 @@ class Prospect(SellingController):
 	def has_lead(self):
 		return frappe.db.get_value("Lead", {"prospect_name": self.name})
 
-
-
 @frappe.whitelist()
 def make_lead(source_name, target_doc=None):
 	return _make_lead(source_name, target_doc)

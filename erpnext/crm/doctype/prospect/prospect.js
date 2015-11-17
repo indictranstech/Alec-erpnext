@@ -13,14 +13,18 @@ erpnext.ProspectController = frappe.ui.form.Controller.extend({
 		if(!this.frm.doc.__islocal && this.frm.doc.__onload && !this.frm.doc.__onload.is_lead) {
 			this.frm.add_custom_button(__("Convert to Lead"), this.create_lead,
 				frappe.boot.doctype_icons["Lead"], "btn-big");
+		}else if(this.frm.doc.status != 'Qualified'){
+			cur_frm.set_value('status', 'Qualified')
+			cur_frm.save()
 		}
 	},
 
-	create_lead: function() {
-		frappe.model.open_mapped_doc({
+	create_lead: function(doc, cdt, cdn) {
+			frappe.model.open_mapped_doc({
 			method: "erpnext.crm.doctype.prospect.prospect.make_lead",
 			frm: cur_frm
 		})
+		cur_frm.refresh()
 	}
 });
 
