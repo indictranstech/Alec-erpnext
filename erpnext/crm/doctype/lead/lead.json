@@ -245,8 +245,7 @@
    "search_index": 0, 
    "set_only_once": 0, 
    "unique": 0
-  },
-   
+  }, 
   {
    "allow_on_submit": 0, 
    "bold": 0, 
@@ -272,7 +271,7 @@
    "allow_on_submit": 0, 
    "bold": 0, 
    "collapsible": 0, 
-   "default": "__user", 
+   "default": "", 
    "fieldname": "lead_owner", 
    "fieldtype": "Link", 
    "hidden": 0, 
@@ -809,8 +808,8 @@
  "is_submittable": 0, 
  "issingle": 0, 
  "istable": 0, 
- "modified": "2015-11-10 12:36:29.821211", 
- "modified_by": "Administrator", 
+ "modified": "2015-11-18 11:03:04.339151", 
+ "modified_by": "alejandro.ruiz_ramon@energychoice.com", 
  "module": "CRM", 
  "name": "Lead", 
  "owner": "Administrator", 

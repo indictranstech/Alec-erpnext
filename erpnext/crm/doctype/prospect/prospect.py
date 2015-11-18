@@ -21,6 +21,10 @@ class Prospect(SellingController):
 		lead = frappe.db.get_value("Lead", {"lead_name": self.prospect_name})
 		self.get("__onload").is_lead = lead
 
+		if not self.prospect_owner:
+			self.prospect_owner = self.owner
+			
+
 	def validate(self):
 		self._prev = frappe._dict({
 			"contact_date": frappe.db.get_value("Lead", self.name, "contact_date") if \
@@ -78,8 +82,7 @@ def _make_lead(source_name, target_doc=None, ignore_permissions=False):
 		target.company_name = source.company_name
 		target.contact_no = source.phone
 		target.type = source.prospect_type
-		target.lead_owner = source.prospect_owner
-		source.status = "Qualified"
+		target.from_prospect = source.name
 	doclist = get_mapped_doc("Prospect", source_name,
 			{"Prospect": {
 				"doctype": "Lead",
