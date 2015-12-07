@@ -48,7 +48,7 @@ class PurchaseInvoice(BuyingController):
 		self.check_conversion_rate()
 		self.validate_credit_to_acc()
 		self.clear_unallocated_advances("Purchase Invoice Advance", "advances")
-		self.check_for_stopped_status()
+		self.check_for_stopped_or_closed_status()
 		self.validate_with_previous_doc()
 		self.validate_uom_is_integer("uom", "qty")
 		self.set_against_expense_account()
@@ -76,7 +76,7 @@ class PurchaseInvoice(BuyingController):
 	def get_advances(self):
 		if not self.is_return:
 			super(PurchaseInvoice, self).get_advances(self.credit_to, "Supplier", self.supplier,
-				"Purchase Invoice Advance", "advances", "debit", "purchase_order")
+				"Purchase Invoice Advance", "advances", "debit_in_account_currency", "purchase_order")
 
 	def check_active_purchase_items(self):
 		for d in self.get('items'):
@@ -103,14 +103,14 @@ class PurchaseInvoice(BuyingController):
 
 		self.party_account_currency = account.account_currency
 
-	def check_for_stopped_status(self):
+	def check_for_stopped_or_closed_status(self):
 		check_list = []
+		pc_obj = frappe.get_doc('Purchase Common')
+
 		for d in self.get('items'):
 			if d.purchase_order and not d.purchase_order in check_list and not d.purchase_receipt:
 				check_list.append(d.purchase_order)
-				stopped = frappe.db.sql("select name from `tabPurchase Order` where status = 'Stopped' and name = %s", d.purchase_order)
-				if stopped:
-					throw(_("Purchase Order {0} is 'Stopped'").format(d.purchase_order))
+				pc_obj.check_for_stopped_or_closed_status('Purchase Order', d.purchase_order)
 
 	def validate_with_previous_doc(self):
 		super(PurchaseInvoice, self).validate_with_previous_doc({
@@ -150,10 +150,14 @@ class PurchaseInvoice(BuyingController):
 		against_accounts = []
 		stock_items = self.get_stock_items()
 		for item in self.get("items"):
+			# in case of auto inventory accounting, 
+			# against expense account is always "Stock Received But Not Billed"
+			# for a stock item and if not epening entry and not drop-ship entry
+			
 			if auto_accounting_for_stock and item.item_code in stock_items \
-					and self.is_opening == 'No':
-				# in case of auto inventory accounting, against expense account is always
-				# Stock Received But Not Billed for a stock item
+				and self.is_opening == 'No' and (not item.po_detail or 
+					not frappe.db.get_value("Purchase Order Item", item.po_detail, "delivered_by_supplier")):
+				
 				item.expense_account = stock_not_billed_account
 				item.cost_center = None
 
@@ -176,9 +180,10 @@ class PurchaseInvoice(BuyingController):
 					 throw(_("Purchse Order number required for Item {0}").format(d.item_code))
 
 	def pr_required(self):
+		stock_items = self.get_stock_items()
 		if frappe.db.get_value("Buying Settings", None, "pr_required") == 'Yes':
 			 for d in self.get('items'):
-				 if not d.purchase_receipt:
+				 if not d.purchase_receipt and d.item_code in stock_items:
 					 throw(_("Purchase Receipt number required for Item {0}").format(d.item_code))
 
 	def validate_write_off_account(self):
@@ -317,23 +322,22 @@ class PurchaseInvoice(BuyingController):
 			if auto_accounting_for_stock and self.is_opening == "No" and \
 				item.item_code in stock_items and item.item_tax_amount:
 					# Post reverse entry for Stock-Received-But-Not-Billed if it is booked in Purchase Receipt
-					negative_expense_booked_in_pi = None
 					if item.purchase_receipt:
-						negative_expense_booked_in_pi = frappe.db.sql("""select name from `tabGL Entry`
+						negative_expense_booked_in_pr = frappe.db.sql("""select name from `tabGL Entry`
 							where voucher_type='Purchase Receipt' and voucher_no=%s and account=%s""",
 							(item.purchase_receipt, expenses_included_in_valuation))
 
-					if not negative_expense_booked_in_pi:
-						gl_entries.append(
-							self.get_gl_dict({
-								"account": stock_received_but_not_billed,
-								"against": self.supplier,
-								"debit": flt(item.item_tax_amount, self.precision("item_tax_amount", item)),
-								"remarks": self.remarks or "Accounting Entry for Stock"
-							})
-						)
+						if not negative_expense_booked_in_pr:
+							gl_entries.append(
+								self.get_gl_dict({
+									"account": stock_received_but_not_billed,
+									"against": self.supplier,
+									"debit": flt(item.item_tax_amount, self.precision("item_tax_amount", item)),
+									"remarks": self.remarks or "Accounting Entry for Stock"
+								})
+							)
 
-						negative_expense_to_be_booked += flt(item.item_tax_amount, self.precision("item_tax_amount", item))
+							negative_expense_to_be_booked += flt(item.item_tax_amount, self.precision("item_tax_amount", item))
 
 		if self.is_opening == "No" and negative_expense_to_be_booked and valuation_tax:
 			# credit valuation tax amount in "Expenses Included In Valuation"
@@ -395,6 +399,8 @@ class PurchaseInvoice(BuyingController):
 			make_gl_entries(gl_entries, cancel=(self.docstatus == 2))
 
 	def on_cancel(self):
+		self.check_for_stopped_or_closed_status()
+
 		if not self.is_return:
 			from erpnext.accounts.utils import remove_against_link_from_jv
 			remove_against_link_from_jv(self.doctype, self.name)
@@ -421,7 +427,7 @@ class PurchaseInvoice(BuyingController):
 		if self.bill_no:
 			if cint(frappe.db.get_single_value("Accounts Settings", "check_supplier_invoice_uniqueness")):
 				pi = frappe.db.exists("Purchase Invoice", {"bill_no": self.bill_no,
-					"fiscal_year": self.fiscal_year, "name": ("!=", self.name)})
+					"fiscal_year": self.fiscal_year, "name": ("!=", self.name), "docstatus": ("<", 2)})
 				if pi:
 					frappe.throw("Supplier Invoice No exists in Purchase Invoice {0}".format(pi))
 
@@ -437,10 +443,10 @@ def get_expense_account(doctype, txt, searchfield, start, page_len, filters):
 					or tabAccount.account_type in ("Expense Account", "Fixed Asset", "Temporary"))
 				and tabAccount.is_group=0
 				and tabAccount.docstatus!=2
-				and tabAccount.company = '%(company)s'
-				and tabAccount.%(key)s LIKE '%(txt)s'
-				%(mcond)s""" % {'company': filters['company'], 'key': searchfield,
-			'txt': "%%%s%%" % frappe.db.escape(txt), 'mcond':get_match_cond(doctype)})
+				and tabAccount.company = %(company)s
+				and tabAccount.{key} LIKE %(txt)s
+				{mcond}""".format( key=frappe.db.escape(searchfield), mcond=get_match_cond(doctype) ),
+				{ 'company': filters['company'], 'txt': "%%%s%%" % frappe.db.escape(txt) })
 
 @frappe.whitelist()
 def make_debit_note(source_name, target_doc=None):

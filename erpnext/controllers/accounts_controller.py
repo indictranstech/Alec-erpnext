@@ -10,7 +10,7 @@ from erpnext.accounts.utils import get_fiscal_year, validate_fiscal_year, get_ac
 from erpnext.utilities.transaction_base import TransactionBase
 from erpnext.controllers.recurring_document import convert_to_recurring, validate_recurring_document
 from erpnext.controllers.sales_and_purchase_return import validate_return
-from erpnext.accounts.party import get_party_account_currency, validate_party_gle_currency
+from erpnext.accounts.party import get_party_account_currency
 from erpnext.exceptions import CustomerFrozen, InvalidCurrency
 
 force_item_fields = ("item_group", "barcode", "brand", "stock_uom")
@@ -133,6 +133,14 @@ class AccountsController(TransactionBase):
 	def set_missing_item_details(self):
 		"""set missing item values"""
 		from erpnext.stock.get_item_details import get_item_details
+		
+		if self.doctype == "Purchase Invoice":
+			auto_accounting_for_stock = cint(frappe.defaults.get_global_default("auto_accounting_for_stock"))
+
+			if auto_accounting_for_stock:
+				stock_not_billed_account = self.get_company_default("stock_received_but_not_billed")
+				
+			stock_items = self.get_stock_items()
 
 		if hasattr(self, "items"):
 			parent_dict = {}
@@ -152,13 +160,14 @@ class AccountsController(TransactionBase):
 					ret = get_item_details(args)
 
 					for fieldname, value in ret.items():
-						if item.meta.get_field(fieldname) and \
-							(item.get(fieldname) is None or fieldname in force_item_fields) \
-								and value is not None:
+						if item.meta.get_field(fieldname) and value is not None:
+							if (item.get(fieldname) is None or fieldname in force_item_fields):
 								item.set(fieldname, value)
 
-						if fieldname == "cost_center" and item.meta.get_field("cost_center") \
-							and not item.get("cost_center") and value is not None:
+							elif fieldname == "cost_center" and not item.get("cost_center"):
+								item.set(fieldname, value)
+
+							elif fieldname == "conversion_factor" and not item.get("conversion_factor"):
 								item.set(fieldname, value)
 
 					if ret.get("pricing_rule"):
@@ -169,6 +178,15 @@ class AccountsController(TransactionBase):
 						if item.price_list_rate:
 							item.rate = flt(item.price_list_rate *
 								(1.0 - (flt(item.discount_percentage) / 100.0)), item.precision("rate"))
+								
+					if self.doctype == "Purchase Invoice":
+						if auto_accounting_for_stock and item.item_code in stock_items \
+							and self.is_opening == 'No' \
+							and (not item.po_detail or not frappe.db.get_value("Purchase Order Item", 
+								item.po_detail, "delivered_by_supplier")):
+				
+								item.expense_account = stock_not_billed_account
+								item.cost_center = None
 
 	def set_taxes(self):
 		if not self.meta.get_field("taxes"):
@@ -221,7 +239,7 @@ class AccountsController(TransactionBase):
 		if not account_currency:
 			account_currency = get_account_currency(gl_dict.account)
 
-		if self.doctype != "Journal Entry":
+		if self.doctype not in ["Journal Entry", "Period Closing Voucher"]:
 			self.validate_account_currency(gl_dict.account, account_currency)
 			self.set_balance_in_account_currency(gl_dict, account_currency)
 
@@ -257,7 +275,7 @@ class AccountsController(TransactionBase):
 		self.set(parentfield, self.get(parentfield, {"allocated_amount": ["not in", [0, None, ""]]}))
 
 		frappe.db.sql("""delete from `tab%s` where parentfield=%s and parent = %s
-			and ifnull(allocated_amount, 0) = 0""" % (childtype, '%s', '%s'), (parentfield, self.name))
+			and allocated_amount = 0""" % (childtype, '%s', '%s'), (parentfield, self.name))
 
 	def get_advances(self, account_head, party_type, party, child_doctype, parentfield, dr_or_cr, against_order_field):
 		"""Returns list of advances against Account, Party, Reference"""
@@ -375,7 +393,7 @@ class AccountsController(TransactionBase):
 
 		advance_paid = frappe.db.sql("""
 			select
-				sum(ifnull({dr_or_cr}, 0))
+				sum({dr_or_cr})
 			from
 				`tabJournal Entry Account`
 			where
@@ -434,6 +452,8 @@ class AccountsController(TransactionBase):
 
 					frappe.throw(_("Accounting Entry for {0}: {1} can only be made in currency: {2}")
 						.format(party_type, party, party_account_currency), InvalidCurrency)
+
+				# Note: not validating with gle account because we don't have the account at quotation / sales order level and we shouldn't stop someone from creating a sales invoice if sales order is already created
 
 @frappe.whitelist()
 def get_tax_rate(account_head):

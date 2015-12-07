@@ -74,11 +74,12 @@ class TestStockEntry(unittest.TestCase):
 		from erpnext.stock.doctype.item.test_item import make_item_variant
 		make_item_variant()
 		self._test_auto_material_request("_Test Item")
+		self._test_auto_material_request("_Test Item", material_request_type="Transfer")
 
 	def test_auto_material_request_for_variant(self):
 		self._test_auto_material_request("_Test Variant Item-S")
 
-	def _test_auto_material_request(self, item_code):
+	def _test_auto_material_request(self, item_code, material_request_type="Purchase"):
 		item = frappe.get_doc("Item", item_code)
 
 		if item.variant_of:
@@ -101,6 +102,7 @@ class TestStockEntry(unittest.TestCase):
 		# update re-level qty so that it is more than projected_qty
 		if projected_qty >= template.reorder_levels[0].warehouse_reorder_level:
 			template.reorder_levels[0].warehouse_reorder_level += projected_qty
+			template.reorder_levels[0].material_request_type = material_request_type
 			template.save()
 
 		from erpnext.stock.reorder_item import reorder_item
@@ -567,6 +569,27 @@ class TestStockEntry(unittest.TestCase):
 		stock_entry.insert()
 		self.assertTrue("_Test Variant Item-S" in [d.item_code for d in stock_entry.items])
 
+	def test_same_serial_nos_in_repack_or_manufacture_entries(self):
+		s1 = make_serialized_item(target_warehouse="_Test Warehouse - _TC")
+		serial_nos = s1.get("items")[0].serial_no
+
+		s2 = make_stock_entry(item_code="_Test Serialized Item With Series", source="_Test Warehouse - _TC",
+			qty=2, basic_rate=100, purpose="Repack", serial_no=serial_nos, do_not_save=True)
+
+		s2.append("items", {
+			"item_code": "_Test Serialized Item",
+			"t_warehouse": "_Test Warehouse - _TC",
+			"qty": 2,
+			"basic_rate": 120,
+			"expense_account": "Stock Adjustment - _TC",
+			"conversion_factor": 1.0,
+			"cost_center": "_Test Cost Center - _TC",
+			"serial_no": serial_nos
+		})
+
+		s2.submit()
+		s2.cancel()
+
 def make_serialized_item(item_code=None, serial_no=None, target_warehouse=None):
 	se = frappe.copy_doc(test_records[0])
 	se.get("items")[0].item_code = item_code or "_Test Serialized Item With Series"
@@ -616,7 +639,8 @@ def make_stock_entry(**args):
 		"basic_rate": args.basic_rate,
 		"expense_account": args.expense_account or "Stock Adjustment - _TC",
 		"conversion_factor": 1.0,
-		"cost_center": "_Test Cost Center - _TC"
+		"cost_center": "_Test Cost Center - _TC",
+		"serial_no": args.serial_no
 	})
 
 	if not args.do_not_save:

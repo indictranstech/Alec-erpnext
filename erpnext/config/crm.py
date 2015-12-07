@@ -17,13 +17,13 @@ def get_data():
 				},
 				{
 					"type": "doctype",
-					"name": "Opportunity",
-					"description": _("Potential opportunities for selling."),
+					"name": "Customer",
+					"description": _("Customer database."),
 				},
 				{
 					"type": "doctype",
-					"name": "Customer",
-					"description": _("Customer database."),
+					"name": "Opportunity",
+					"description": _("Potential opportunities for selling."),
 				},
 				{
 					"type": "doctype",
@@ -149,6 +149,11 @@ def get_data():
 					"type": "help",
 					"label": _("Lead to Quotation"),
 					"youtube_id": "TxYX4r4JAKA"
+				},
+				{
+					"type": "help",
+					"label": _("Newsletters"),
+					"youtube_id": "muLKsCrrDRo"
 				},
 			]
 		},

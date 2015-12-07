@@ -83,7 +83,7 @@ erpnext.production_order = {
 				frm.add_custom_button(__('Stop'), cur_frm.cscript['Stop Production Order'],
 					"icon-exclamation", "btn-default");
 			} else if (doc.status == 'Stopped') {
-				frm.add_custom_button(__('Unstop'), cur_frm.cscript['Unstop Production Order'],
+				frm.add_custom_button(__('Re-open'), cur_frm.cscript['Unstop Production Order'],
 				"icon-check", "btn-default");
 			}
 
@@ -140,7 +140,7 @@ erpnext.production_order = {
 			} else msgprint(__("Please enter Production Item first"));
 		});
 	},
-	
+
 	set_default_warehouse: function(frm) {
 		frappe.call({
 			method: "erpnext.manufacturing.doctype.production_order.production_order.get_default_warehouse",
@@ -239,18 +239,11 @@ $.extend(cur_frm.cscript, {
 });
 
 cur_frm.cscript['Stop Production Order'] = function() {
-	var doc = cur_frm.doc;
-	var check = confirm(__("Do you really want to stop production order: " + doc.name));
-	if (check) {
-		return $c_obj(doc, 'stop_unstop', 'Stopped', function(r, rt) {cur_frm.refresh();});
-	}
+	$c_obj(cur_frm.doc, 'stop_unstop', 'Stopped', function(r, rt) {cur_frm.refresh();});
 }
 
 cur_frm.cscript['Unstop Production Order'] = function() {
-	var doc = cur_frm.doc;
-	var check = confirm(__("Do really want to unstop production order: " + doc.name));
-	if (check)
-		return $c_obj(doc, 'stop_unstop', 'Unstopped', function(r, rt) {cur_frm.refresh();});
+	$c_obj(cur_frm.doc, 'stop_unstop', 'Unstopped', function(r, rt) {cur_frm.refresh();});
 }
 
 cur_frm.cscript['Transfer Raw Materials'] = function() {
@@ -278,5 +271,3 @@ cur_frm.fields_dict['project_name'].get_query = function(doc, dt, dn) {
 		]
 	}
 }
-
-

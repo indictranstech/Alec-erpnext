@@ -86,6 +86,7 @@ erpnext.SupportAnalytics = frappe.views.GridReportWithPlot.extend({
 				}
 			}
 		});
+
 		// make averages
 		$.each(this.columns, function(i, col) {
 			if(col.formatter==me.currency_formatter && total_tickets[col.field]) {

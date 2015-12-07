@@ -65,12 +65,18 @@ class Account(Document):
 				if self.root_type != db_value.root_type:
 					frappe.db.sql("update `tabAccount` set root_type=%s where lft > %s and rgt < %s",
 						(self.root_type, self.lft, self.rgt))
+						
+		if self.root_type and not self.report_type:
+			self.report_type = "Balance Sheet" \
+				if self.root_type in ("Asset", "Liability", "Equity") else "Profit and Loss"
 
 	def validate_root_details(self):
 		# does not exists parent
 		if frappe.db.exists("Account", self.name):
 			if not frappe.db.get_value("Account", self.name, "parent_account"):
 				throw(_("Root cannot be edited."), RootNotEditable)
+		if not self.parent_account and not self.is_group:
+			frappe.throw(_("Root Account must be a group"))
 
 	def validate_frozen_accounts_modifier(self):
 		old_value = frappe.db.get_value("Account", self.name, "freeze_account")
@@ -127,11 +133,11 @@ class Account(Document):
 			and docstatus != 2""", self.name)
 
 	def validate_mandatory(self):
-		if not self.report_type:
-			throw(_("Report Type is mandatory"))
-
 		if not self.root_type:
 			throw(_("Root Type is mandatory"))
+			
+		if not self.report_type:
+			throw(_("Report Type is mandatory"))
 
 	def validate_warehouse_account(self):
 		if not cint(frappe.defaults.get_global_default("auto_accounting_for_stock")):
@@ -147,6 +153,8 @@ class Account(Document):
 					self.validate_warehouse(old_warehouse)
 				if self.warehouse:
 					self.validate_warehouse(self.warehouse)
+		elif self.warehouse:
+			self.warehouse = None
 
 	def validate_warehouse(self, warehouse):
 		if frappe.db.get_value("Stock Ledger Entry", {"warehouse": warehouse}):
@@ -210,6 +218,8 @@ def get_parent_account(doctype, txt, searchfield, start, page_len, filters):
 
 def get_account_currency(account):
 	"""Helper function to get account currency"""
+	if not account:
+		return
 	def generator():
 		account_currency, company = frappe.db.get_value("Account", account, ["account_currency", "company"])
 		if not account_currency:

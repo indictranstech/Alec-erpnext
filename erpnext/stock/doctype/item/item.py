@@ -3,6 +3,9 @@
 
 from __future__ import unicode_literals
 import frappe
+import json
+import urllib
+import itertools
 from frappe import msgprint, _
 from frappe.utils import cstr, flt, cint, getdate, now_datetime, formatdate
 from frappe.website.website_generator import WebsiteGenerator
@@ -65,6 +68,7 @@ class Item(WebsiteGenerator):
 		self.validate_has_variants()
 		self.validate_attributes()
 		self.validate_variant_attributes()
+		self.make_thumbnail()
 
 		if not self.get("__islocal"):
 			self.old_item_group = frappe.db.get_value(self.doctype, self.name, "item_group")
@@ -77,16 +81,187 @@ class Item(WebsiteGenerator):
 		self.validate_name_with_item_group()
 		self.update_item_price()
 		self.update_variants()
+		self.update_template_item()
+
+	def make_thumbnail(self):
+		"""Make a thumbnail of `website_image`"""
+		import requests.exceptions
+
+		if not self.is_new() and self.website_image != frappe.db.get_value(self.doctype, self.name, "website_image"):
+			self.thumbnail = None
+
+		if self.website_image and not self.thumbnail:
+			file_doc = None
+
+			try:
+				file_doc = frappe.get_doc("File", {
+					"file_url": self.website_image,
+					"attached_to_doctype": "Item",
+					"attached_to_name": self.name
+				})
+			except frappe.DoesNotExistError:
+				pass
+				# cleanup
+				frappe.local.message_log.pop()
+
+			except requests.exceptions.HTTPError:
+				frappe.msgprint(_("Warning: Invalid attachment {0}").format(self.website_image))
+				self.website_image = None
+
+			except requests.exceptions.SSLError:
+				frappe.msgprint(_("Warning: Invalid SSL certificate on attachment {0}").format(self.website_image))
+				self.website_image = None
+
+			# for CSV import
+			if self.website_image and not file_doc:
+				try:
+					file_doc = frappe.get_doc({
+						"doctype": "File",
+						"file_url": self.website_image,
+						"attached_to_doctype": "Item",
+						"attached_to_name": self.name
+					}).insert()
+
+				except IOError:
+					self.website_image = None
+
+			if file_doc:
+				if not file_doc.thumbnail_url:
+					file_doc.make_thumbnail()
+
+				self.thumbnail = file_doc.thumbnail_url
 
 	def get_context(self, context):
-		context["parent_groups"] = get_parent_item_groups(self.item_group) + \
-			[{"name": self.name}]
-		if self.slideshow:
-			context.update(get_slideshow(self))
+		if self.variant_of:
+			# redirect to template page!
+			template_item = frappe.get_doc("Item", self.variant_of)
+			frappe.flags.redirect_location = template_item.get_route() + "?variant=" + urllib.quote(self.name)
+			raise frappe.Redirect
 
-		context["parents"] = self.get_parents(context)
+		context.parent_groups = get_parent_item_groups(self.item_group) + \
+			[{"name": self.name}]
+
+		self.set_variant_context(context)
+
+		self.set_attribute_context(context)
+
+		self.set_disabled_attributes(context)
+
+		context.parents = self.get_parents(context)
 
 		return context
+
+	def set_variant_context(self, context):
+		if self.has_variants:
+			context.no_cache = True
+
+			# load variants
+			# also used in set_attribute_context
+			context.variants = frappe.get_all("Item",
+				filters={"variant_of": self.name, "show_in_website": 1}, order_by="name asc")
+
+			variant = frappe.form_dict.variant
+			if not variant and context.variants:
+				# the case when the item is opened for the first time from its list
+				variant = context.variants[0]
+
+			if variant:
+				context.variant = frappe.get_doc("Item", variant)
+
+				for fieldname in ("website_image", "web_long_description", "description",
+					"website_specifications"):
+					if context.variant.get(fieldname):
+						value = context.variant.get(fieldname)
+						if isinstance(value, list):
+							value = [d.as_dict() for d in value]
+
+						context[fieldname] = value
+
+		if self.slideshow:
+			if context.variant and context.variant.slideshow:
+				context.update(get_slideshow(context.variant))
+			else:
+				context.update(get_slideshow(self))
+
+	def set_attribute_context(self, context):
+		if self.has_variants:
+			attribute_values_available = {}
+			context.attribute_values = {}
+			context.selected_attributes = {}
+
+			# load attributes
+			for v in context.variants:
+				v.attributes = frappe.get_all("Item Variant Attribute",
+					fields=["attribute", "attribute_value"], filters={"parent": v.name})
+
+				for attr in v.attributes:
+					values = attribute_values_available.setdefault(attr.attribute, [])
+					if attr.attribute_value not in values:
+						values.append(attr.attribute_value)
+
+					if v.name==context.variant.name:
+						context.selected_attributes[attr.attribute] = attr.attribute_value
+
+			# filter attributes, order based on attribute table
+			for attr in self.attributes:
+				values = context.attribute_values.setdefault(attr.attribute, [])
+
+				if cint(frappe.db.get_value("Item Attribute", attr.attribute, "numeric_values")):
+					for val in sorted(attribute_values_available.get(attr.attribute, []), key=flt):
+						values.append(val)
+
+				else:
+					# get list of values defined (for sequence)
+					for attr_value in frappe.db.get_all("Item Attribute Value",
+						fields=["attribute_value"], filters={"parent": attr.attribute}, order_by="idx asc"):
+
+						if attr_value.attribute_value in attribute_values_available.get(attr.attribute, []):
+							values.append(attr_value.attribute_value)
+
+			context.variant_info = json.dumps(context.variants)
+
+	def set_disabled_attributes(self, context):
+		"""Disable selection options of attribute combinations that do not result in a variant"""
+		if not self.attributes:
+			return
+
+		context.disabled_attributes = {}
+		attributes = [attr.attribute for attr in self.attributes]
+
+		def find_variant(combination):
+			for variant in context.variants:
+				if len(variant.attributes) < len(attributes):
+					continue
+
+				if "combination" not in variant:
+					ref_combination = []
+
+					for attr in variant.attributes:
+						idx = attributes.index(attr.attribute)
+						ref_combination.insert(idx, attr.attribute_value)
+
+					variant["combination"] = ref_combination
+
+				if not (set(combination) - set(variant["combination"])):
+					# check if the combination is a subset of a variant combination
+					# eg. [Blue, 0.5] is a possible combination if exists [Blue, Large, 0.5]
+					return True
+
+		for i, attr in enumerate(self.attributes):
+			if i==0:
+				continue
+
+			combination_source = []
+
+			# loop through previous attributes
+			for prev_attr in self.attributes[:i]:
+				combination_source.append([context.selected_attributes.get(prev_attr.attribute)])
+
+			combination_source.append(context.attribute_values[attr.attribute])
+
+			for combination in itertools.product(*combination_source):
+				if not find_variant(combination):
+					context.disabled_attributes.setdefault(attr.attribute, []).append(combination[-1])
 
 	def check_warehouse_is_set_for_stock_item(self):
 		if self.is_stock_item==1 and not self.default_warehouse and frappe.get_all("Warehouse"):
@@ -136,7 +311,7 @@ class Item(WebsiteGenerator):
 
 	def validate_item_type(self):
 		if self.is_pro_applicable == 1 and self.is_stock_item==0:
-			frappe.throw(_("As Production Order can be made for this item, it must be a stock item."))
+			self.is_pro_applicable = 0
 
 		if self.has_serial_no == 1 and self.is_stock_item == 0:
 			msgprint(_("'Has Serial No' can not be 'Yes' for non-stock item"), raise_exception=1)
@@ -200,8 +375,15 @@ class Item(WebsiteGenerator):
 			self.set("reorder_levels", [])
 
 		if self.re_order_level or len(self.get("reorder_levels", {"material_request_type": "Purchase"})):
-			if not self.is_purchase_item:
-				frappe.throw(_("""To set reorder level, item must be a Purchase Item"""))
+			if not (self.is_purchase_item or self.is_pro_applicable):
+				frappe.throw(_("""To set reorder level, item must be a Purchase Item or Manufacturing Item"""))
+
+		if self.re_order_level and not self.re_order_qty:
+			frappe.throw(_("Please set reorder quantity"))
+		for d in self.get("reorder_levels"):
+			if d.warehouse_reorder_level and not d.warehouse_reorder_qty:
+				frappe.throw(_("Row #{0}: Please set reorder quantity").format(d.idx))
+					
 
 	def validate_warehouse_for_reorder(self):
 		warehouse = []
@@ -226,9 +408,6 @@ class Item(WebsiteGenerator):
 		frappe.db.sql("""update `tabItem Price` set item_name=%s,
 			item_description=%s, modified=NOW() where item_code=%s""",
 			(self.item_name, self.description, self.name))
-
-	def get_tax_rate(self, tax_type):
-		return { "tax_rate": frappe.db.get_value("Account", tax_type, "tax_rate") }
 
 	def on_trash(self):
 		super(Item, self).on_trash()
@@ -295,8 +474,19 @@ class Item(WebsiteGenerator):
 			frappe.db.sql("""update `tabBOM Explosion Item` set description = %s where
 				item_code = %s and docstatus < 2""",(self.description, self.name))
 
+	def update_template_item(self):
+		"""Set Show in Website for Template Item if True for its Variant"""
+		if self.variant_of and self.show_in_website:
+			template_item = frappe.get_doc("Item", self.variant_of)
+
+			if not template_item.show_in_website:
+				template_item.show_in_website = 1
+				template_item.flags.ignore_permissions = True
+				template_item.flags.dont_update_variants = True
+				template_item.save()
+
 	def update_variants(self):
-		if self.has_variants:
+		if self.has_variants and not self.flags.dont_update_variants:
 			updated = []
 			variants = frappe.db.get_all("Item", fields=["item_code"], filters={"variant_of": self.name })
 			for d in variants:
@@ -348,13 +538,16 @@ class Item(WebsiteGenerator):
 				if variant and self.get("__islocal"):
 					frappe.throw(_("Item variant {0} exists with same attributes").format(variant), ItemVariantExistsError)
 
-def validate_end_of_life(item_code, end_of_life=None, verbose=1):
-	if not end_of_life:
-		end_of_life = frappe.db.get_value("Item", item_code, "end_of_life")
+def validate_end_of_life(item_code, end_of_life=None, disabled=None, verbose=1):
+	if (not end_of_life) or (disabled is None):
+		end_of_life, disabled = frappe.db.get_value("Item", item_code, ["end_of_life", "disabled"])
 
 	if end_of_life and end_of_life!="0000-00-00" and getdate(end_of_life) <= now_datetime().date():
 		msg = _("Item {0} has reached its end of life on {1}").format(item_code, formatdate(end_of_life))
 		_msgprint(msg, verbose)
+
+	if disabled:
+		_msgprint(_("Item {0} is disabled").format(item_code), verbose)
 
 def validate_is_stock_item(item_code, is_stock_item=None, verbose=1):
 	if not is_stock_item:
@@ -476,7 +669,5 @@ def check_stock_uom_with_bin(item, stock_uom):
 			frappe.db.sql("""update tabBin set stock_uom=%s where item_code=%s""", (stock_uom, item))
 
 	if not matched:
-		frappe.throw(_("Default Unit of Measure for Item {0} cannot be changed directly because \
-			you have already made some transaction(s) with another UOM. To change default UOM, \
-			use 'UOM Replace Utility' tool under Stock module.").format(item))
+		frappe.throw(_("Default Unit of Measure for Item {0} cannot be changed directly because you have already made some transaction(s) with another UOM. You will need to create a new Item to use a different Default UOM.").format(item))
 

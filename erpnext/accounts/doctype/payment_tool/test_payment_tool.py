@@ -135,6 +135,7 @@ class TestPaymentTool(unittest.TestCase):
 
 		self.check_outstanding_vouchers(payment_tool_doc, args, expected_outstanding)
 
+
 	def check_outstanding_vouchers(self, doc, args, expected_outstanding):
 		from erpnext.accounts.doctype.payment_tool.payment_tool import get_outstanding_vouchers
 		outstanding_entries = get_outstanding_vouchers(json.dumps(args))

@@ -163,7 +163,6 @@ class TestPurchaseReceipt(unittest.TestCase):
 		serial_no = get_serial_nos(pr.get("items")[0].serial_no)[0]
 		
 		_check_serial_no_values(serial_no, {
-			"status": "Available",
 			"warehouse": "_Test Warehouse - _TC",
 			"purchase_document_no": pr.name
 		})
@@ -172,13 +171,20 @@ class TestPurchaseReceipt(unittest.TestCase):
 			is_return=1, return_against=pr.name, serial_no=serial_no)
 			
 		_check_serial_no_values(serial_no, {
-			"status": "Purchase Returned",
 			"warehouse": "",
 			"purchase_document_no": pr.name,
 			"delivery_document_no": return_pr.name
 		})
+	
+	def test_closed_purchase_receipt(self):
+		from erpnext.stock.doctype.purchase_receipt.purchase_receipt import update_purchase_receipt_status
 		
-
+		pr = make_purchase_receipt(do_not_submit=True)
+		pr.submit()
+		
+		update_purchase_receipt_status(pr.name, "Closed")
+		self.assertEquals(frappe.db.get_value("Purchase Receipt", pr.name, "status"), "Closed")
+		
 def get_gl_entries(voucher_type, voucher_no):
 	return frappe.db.sql("""select account, debit, credit
 		from `tabGL Entry` where voucher_type=%s and voucher_no=%s

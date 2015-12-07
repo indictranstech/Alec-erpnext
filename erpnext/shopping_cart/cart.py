@@ -143,7 +143,7 @@ def guess_territory():
 def decorate_quotation_doc(doc):
 	for d in doc.get("items", []):
 		d.update(frappe.db.get_value("Item", d.item_code,
-			["website_image", "description", "page_name"], as_dict=True))
+			["thumbnail", "website_image", "description", "page_name"], as_dict=True))
 
 	return doc
 
@@ -292,6 +292,7 @@ def get_customer(user=None):
 			"customer_group": get_shopping_cart_settings().default_customer_group,
 			"territory": get_root_of("Territory")
 		})
+		customer.flags.ignore_mandatory = True
 		customer.insert(ignore_permissions=True)
 
 		contact = frappe.new_doc("Contact")
@@ -300,6 +301,7 @@ def get_customer(user=None):
 			"first_name": fullname,
 			"email_id": user
 		})
+		contact.flags.ignore_mandatory = True
 		contact.insert(ignore_permissions=True)
 
 		return customer

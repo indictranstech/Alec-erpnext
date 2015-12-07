@@ -24,6 +24,7 @@ class NamingSeries(Document):
 			try:
 				options = self.get_options(d)
 			except frappe.DoesNotExistError:
+				frappe.pass_does_not_exist_error()
 				continue
 
 			if options:
@@ -126,7 +127,6 @@ class NamingSeries(Document):
 
 	def get_options(self, arg=None):
 		return frappe.get_meta(arg or self.select_doc_for_series).get_field("naming_series").options
-
 
 	def get_current(self, arg=None):
 		"""get series current"""

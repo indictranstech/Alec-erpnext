@@ -6,10 +6,12 @@ import frappe
 from frappe import _
 from frappe.utils import flt, fmt_money, getdate, formatdate
 from frappe.model.document import Document
-from erpnext.accounts.party import validate_party_gle_currency, get_party_account_currency
+from erpnext.accounts.party import validate_party_gle_currency
 from erpnext.accounts.utils import get_account_currency
 from erpnext.setup.doctype.company.company import get_company_currency
 from erpnext.exceptions import InvalidAccountCurrency, CustomerFrozen
+
+exclude_from_linked_with = True
 
 class GLEntry(Document):
 	def validate(self):
@@ -112,19 +114,13 @@ class GLEntry(Document):
 				.format(self.account, (account_currency or company_currency)), InvalidAccountCurrency)
 
 		if self.party_type and self.party:
-			party_account_currency = get_party_account_currency(self.party_type, self.party, self.company)
-
-			if party_account_currency != self.account_currency:
-				frappe.throw(_("Accounting Entry for {0}: {1} can only be made in currency: {2}")
-					.format(self.party_type, self.party, party_account_currency), InvalidAccountCurrency)
-
-			validate_party_gle_currency(self.party_type, self.party, self.company)
+			validate_party_gle_currency(self.party_type, self.party, self.company, self.account_currency)
 
 def validate_balance_type(account, adv_adj=False):
 	if not adv_adj and account:
 		balance_must_be = frappe.db.get_value("Account", account, "balance_must_be")
 		if balance_must_be:
-			balance = frappe.db.sql("""select sum(ifnull(debit, 0)) - sum(ifnull(credit, 0))
+			balance = frappe.db.sql("""select sum(debit) - sum(credit)
 				from `tabGL Entry` where account = %s""", account)[0][0]
 
 			if (balance_must_be=="Debit" and flt(balance) < 0) or \
@@ -146,14 +142,14 @@ def check_freezing_date(posting_date, adv_adj=False):
 
 def update_outstanding_amt(account, party_type, party, against_voucher_type, against_voucher, on_cancel=False):
 	if party_type and party:
-		party_condition = " and ifnull(party_type, '')='{0}' and ifnull(party, '')='{1}'"\
+		party_condition = " and party_type='{0}' and party='{1}'"\
 			.format(frappe.db.escape(party_type), frappe.db.escape(party))
 	else:
 		party_condition = ""
 
 	# get final outstanding amt
 	bal = flt(frappe.db.sql("""
-		select sum(ifnull(debit_in_account_currency, 0)) - sum(ifnull(credit_in_account_currency, 0))
+		select sum(debit_in_account_currency) - sum(credit_in_account_currency)
 		from `tabGL Entry`
 		where against_voucher_type=%s and against_voucher=%s
 		and account = %s {0}""".format(party_condition),
@@ -163,9 +159,9 @@ def update_outstanding_amt(account, party_type, party, against_voucher_type, aga
 		bal = -bal
 	elif against_voucher_type == "Journal Entry":
 		against_voucher_amount = flt(frappe.db.sql("""
-			select sum(ifnull(debit_in_account_currency, 0)) - sum(ifnull(credit_in_account_currency, 0))
+			select sum(debit_in_account_currency) - sum(credit_in_account_currency)
 			from `tabGL Entry` where voucher_type = 'Journal Entry' and voucher_no = %s
-			and account = %s and ifnull(against_voucher, '') = '' {0}"""
+			and account = %s and (against_voucher is null or against_voucher='') {0}"""
 			.format(party_condition), (against_voucher, account))[0][0])
 
 		if not against_voucher_amount:

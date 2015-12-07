@@ -5,11 +5,18 @@ from __future__ import unicode_literals
 import frappe
 import frappe.permissions
 from erpnext.controllers.recurring_document import date_field_map
+<<<<<<< HEAD
 from frappe.utils import getdate
 
 def test_recurring_document(obj, test_records):
 	from frappe.utils import get_first_day, get_last_day, add_to_date, nowdate, getdate, add_days
 	from erpnext.accounts.utils import get_fiscal_year
+=======
+from frappe.utils import get_first_day, get_last_day, add_to_date, nowdate, getdate, add_days
+from erpnext.accounts.utils import get_fiscal_year
+
+def test_recurring_document(obj, test_records):
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 	frappe.db.set_value("Print Settings", "Print Settings", "send_print_as_pdf", 1)
 	today = nowdate()
 	base_doc = frappe.copy_doc(test_records[0])
@@ -38,6 +45,7 @@ def test_recurring_document(obj, test_records):
 	_test_recurring_document(obj, doc1, date_field, True)
 
 	# monthly without a first and last day period
+<<<<<<< HEAD
 	doc2 = frappe.copy_doc(base_doc)
 	doc2.update({
 		"from_date": today,
@@ -46,6 +54,17 @@ def test_recurring_document(obj, test_records):
 	doc2.insert()
 	doc2.submit()
 	_test_recurring_document(obj, doc2, date_field, False)
+=======
+	if getdate(today).day != 1:
+		doc2 = frappe.copy_doc(base_doc)
+		doc2.update({
+			"from_date": today,
+			"to_date": add_to_date(today, days=30)
+		})
+		doc2.insert()
+		doc2.submit()
+		_test_recurring_document(obj, doc2, date_field, False)
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 
 	# quarterly
 	doc3 = frappe.copy_doc(base_doc)
@@ -117,6 +136,10 @@ def _test_recurring_document(obj, base_doc, date_field, first_and_last_day):
 
 		next_date = get_next_date(base_doc.get(date_field), no_of_months,
 			base_doc.repeat_on_day_of_month)
+<<<<<<< HEAD
+=======
+
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 		manage_recurring_documents(base_doc.doctype, next_date=next_date, commit=False)
 
 		recurred_documents = frappe.db.sql("""select name from `tab%s`

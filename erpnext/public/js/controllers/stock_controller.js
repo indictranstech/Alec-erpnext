@@ -48,6 +48,7 @@ erpnext.stock.StockController = frappe.ui.form.Controller.extend({
 				frappe.set_route("query-report", "General Ledger");
 			}, "icon-table");
 		}
+<<<<<<< HEAD
 	},
 
 	copy_account_in_all_row: function(doc, dt, dn, fieldname) {
@@ -59,5 +60,7 @@ erpnext.stock.StockController = frappe.ui.form.Controller.extend({
 			}
 		}
 		refresh_field(this.frm.cscript.fname);
+=======
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 	}
 });

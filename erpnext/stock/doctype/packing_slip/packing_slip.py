@@ -91,8 +91,8 @@ class PackingSlip(Document):
 			condition = " and item_code in (%s)" % (", ".join(["%s"]*len(rows)))
 
 		# gets item code, qty per item code, latest packed qty per item code and stock uom
-		res = frappe.db.sql("""select item_code, ifnull(sum(qty), 0) as qty,
-			(select sum(ifnull(psi.qty, 0) * (abs(ps.to_case_no - ps.from_case_no) + 1))
+		res = frappe.db.sql("""select item_code, sum(qty) as qty,
+			(select sum(psi.qty * (abs(ps.to_case_no - ps.from_case_no) + 1))
 				from `tabPacking Slip` ps, `tabPacking Slip Item` psi
 				where ps.name = psi.parent and ps.docstatus = 1
 				and ps.delivery_note = dni.parent and psi.item_code=dni.item_code) as packed_qty,
@@ -139,7 +139,7 @@ class PackingSlip(Document):
 			note
 		"""
 		recommended_case_no = frappe.db.sql("""SELECT MAX(to_case_no) FROM `tabPacking Slip`
-			WHERE delivery_note = %s AND docstatus=1""", self.delivery_note, debug=True)
+			WHERE delivery_note = %s AND docstatus=1""", self.delivery_note)
 
 		return cint(recommended_case_no[0][0]) + 1
 
@@ -166,4 +166,4 @@ def item_details(doctype, txt, searchfield, start, page_len, filters):
 	 			and %s like "%s" %s
 	 			limit  %s, %s """ % ("%s", searchfield, "%s",
 	 			get_match_cond(doctype), "%s", "%s"),
-	 			((filters or {}).get("delivery_note"), "%%%s%%" % txt, start, page_len),debug=1)
+	 			((filters or {}).get("delivery_note"), "%%%s%%" % txt, start, page_len))

@@ -71,6 +71,10 @@ erpnext.StockGridReport = frappe.views.TreeGridReport.extend({
 			if(batch[0] >= qty) {
 				batch[0] = batch[0] - qty;
 				fifo_value_diff += (qty * batch[1]);
+<<<<<<< HEAD
+=======
+
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 				qty = 0.0;
 				if(batch[0]) {
 					// batch still has qty put it back

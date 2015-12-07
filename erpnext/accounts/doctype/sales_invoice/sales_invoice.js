@@ -50,6 +50,13 @@ erpnext.accounts.SalesInvoiceController = erpnext.selling.SellingController.exte
 		if(doc.update_stock) this.show_stock_ledger();
 
 		if(doc.docstatus==1 && !doc.is_return) {
+			
+			var is_delivered_by_supplier = false;
+			
+			is_delivered_by_supplier = cur_frm.doc.items.some(function(item){
+				return item.is_delivered_by_supplier ? true : false;
+			})
+			
 			cur_frm.add_custom_button(doc.update_stock ? __('Sales Return') : __('Credit Note'),
 				this.make_sales_return);
 
@@ -61,7 +68,7 @@ erpnext.accounts.SalesInvoiceController = erpnext.selling.SellingController.exte
 						return item.delivery_note ? true : false;
 					});
 
-				if(!from_delivery_note) {
+				if(!from_delivery_note && !is_delivered_by_supplier) {
 					cur_frm.add_custom_button(__('Delivery'), cur_frm.cscript['Make Delivery Note']).addClass("btn-primary");
 				}
 			}
@@ -104,7 +111,7 @@ erpnext.accounts.SalesInvoiceController = erpnext.selling.SellingController.exte
 					source_doctype: "Sales Order",
 					get_query_filters: {
 						docstatus: 1,
-						status: ["!=", "Stopped"],
+						status: ["not in", ["Stopped", "Closed"]],
 						per_billed: ["<", 99.99],
 						customer: cur_frm.doc.customer || undefined,
 						company: cur_frm.doc.company
@@ -160,6 +167,9 @@ erpnext.accounts.SalesInvoiceController = erpnext.selling.SellingController.exte
 							me.set_dynamic_labels();
 							me.calculate_taxes_and_totals();
 							if(callback_fn) callback_fn();
+							frappe.after_ajax(function() {
+								cur_frm.doc.__missing_values_set = false;
+							})
 						}
 					}
 				});
@@ -320,9 +330,10 @@ cur_frm.cscript['Make Delivery Note'] = function() {
 
 cur_frm.cscript.make_bank_entry = function() {
 	return frappe.call({
-		method: "erpnext.accounts.doctype.journal_entry.journal_entry.get_payment_entry_from_sales_invoice",
+		method: "erpnext.accounts.doctype.journal_entry.journal_entry.get_payment_entry_against_invoice",
 		args: {
-			"sales_invoice": cur_frm.doc.name
+			"dt": "Sales Invoice",
+			"dn": cur_frm.doc.name
 		},
 		callback: function(r) {
 			var doclist = frappe.model.sync(r.message);
@@ -376,7 +387,7 @@ cur_frm.fields_dict['project_name'].get_query = function(doc, cdt, cdn) {
 // --------------------------------
 cur_frm.set_query("income_account", "items", function(doc) {
 	return{
-		query: "erpnext.accounts.doctype.sales_invoice.sales_invoice.get_income_account",
+		query: "erpnext.controllers.queries.get_income_account",
 		filters: {'company': doc.company}
 	}
 });

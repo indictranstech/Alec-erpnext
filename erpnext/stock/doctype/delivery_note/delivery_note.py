@@ -10,6 +10,8 @@ from frappe import msgprint, _
 import frappe.defaults
 from frappe.model.mapper import get_mapped_doc
 from erpnext.controllers.selling_controller import SellingController
+from frappe.desk.notifications import clear_doctype_notifications
+
 
 form_grid_templates = {
 	"items": "templates/form_grid/item_grid.html"
@@ -35,7 +37,7 @@ class DeliveryNote(SellingController):
 			'second_join_field': 'so_detail',
 			'overflow_type': 'delivery',
 			'second_source_extra_cond': """ and exists(select name from `tabSales Invoice`
-				where name=`tabSales Invoice Item`.parent and ifnull(update_stock, 0) = 1)"""
+				where name=`tabSales Invoice Item`.parent and update_stock = 1)"""
 		},
 		{
 			'source_dt': 'Delivery Note Item',
@@ -63,11 +65,14 @@ class DeliveryNote(SellingController):
 		}]
 
 	def onload(self):
-		billed_qty = frappe.db.sql("""select sum(ifnull(qty, 0)) from `tabSales Invoice Item`
+		billed_qty = frappe.db.sql("""select sum(qty) from `tabSales Invoice Item`
 			where docstatus=1 and delivery_note=%s""", self.name)
 		if billed_qty:
 			total_qty = sum((item.qty for item in self.get("items")))
-			self.get("__onload").billing_complete = (billed_qty[0][0] == total_qty)
+			self.set_onload("billing_complete", (billed_qty[0][0] == total_qty))
+			
+		self.set_onload("has_return_entry", len(frappe.db.exists({"doctype": "Delivery Note", 
+			"is_return": 1, "return_against": self.name, "docstatus": 1})))
 
 	def before_print(self):
 		def toggle_print_hide(meta, fieldname):
@@ -106,14 +111,14 @@ class DeliveryNote(SellingController):
 		self.set_status()
 		self.so_required()
 		self.validate_proj_cust()
-		self.check_stop_sales_order("against_sales_order")
+		self.check_stop_or_close_sales_order("against_sales_order")
 		self.validate_for_items()
 		self.validate_warehouse()
 		self.validate_uom_is_integer("stock_uom", "qty")
 		self.validate_with_previous_doc()
 
 		from erpnext.stock.doctype.packed_item.packed_item import make_packing_list
-		make_packing_list(self, 'items')
+		make_packing_list(self)
 
 		self.update_current_stock()
 
@@ -165,6 +170,8 @@ class DeliveryNote(SellingController):
 					chk_dupl_itm.append(f)
 
 	def validate_warehouse(self):
+		super(DeliveryNote, self).validate_warehouse()
+		
 		for d in self.get_item_list():
 			if frappe.db.get_value("Item", d['item_code'], "is_stock_item") == 1:
 				if not d['warehouse']:
@@ -203,7 +210,7 @@ class DeliveryNote(SellingController):
 
 
 	def on_cancel(self):
-		self.check_stop_sales_order("against_sales_order")
+		self.check_stop_or_close_sales_order("against_sales_order")
 		self.check_next_docstatus()
 
 		self.update_prevdoc_status()
@@ -214,10 +221,10 @@ class DeliveryNote(SellingController):
 		self.cancel_packing_slips()
 
 		self.make_gl_entries_on_cancel()
-		
+
 	def check_credit_limit(self):
 		from erpnext.selling.doctype.customer.customer import check_credit_limit
-		
+
 		validate_against_credit_limit = False
 		for d in self.get("items"):
 			if not (d.against_sales_order or d.against_sales_invoice):
@@ -266,7 +273,12 @@ class DeliveryNote(SellingController):
 			for r in res:
 				ps = frappe.get_doc('Packing Slip', r[0])
 				ps.cancel()
-			# frappe.msgprint(_("Packing Slip(s) cancelled"))
+			frappe.msgprint(_("Packing Slip(s) cancelled"))
+
+	def update_status(self, status):
+		self.set_status(update=True, status=status)
+		self.notify_update()
+		clear_doctype_notifications(self)
 
 def get_list_context(context=None):
 	from erpnext.controllers.website_list_for_contact import get_list_context
@@ -320,7 +332,7 @@ def make_sales_invoice(source_name, target_doc=None):
 				"serial_no": "serial_no"
 			},
 			"postprocess": update_item,
-			"filter": lambda d: d.qty - invoiced_qty_map.get(d.name, 0)<=0
+			"filter": lambda d: abs(d.qty) - abs(invoiced_qty_map.get(d.name, 0))<=0
 		},
 		"Sales Taxes and Charges": {
 			"doctype": "Sales Taxes and Charges",
@@ -386,3 +398,9 @@ def make_packing_slip(source_name, target_doc=None):
 def make_sales_return(source_name, target_doc=None):
 	from erpnext.controllers.sales_and_purchase_return import make_return_doc
 	return make_return_doc("Delivery Note", source_name, target_doc)
+
+
+@frappe.whitelist()
+def update_delivery_note_status(docname, status):
+	dn = frappe.get_doc("Delivery Note", docname)
+	dn.update_status(status)

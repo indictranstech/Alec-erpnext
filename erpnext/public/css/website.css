@@ -29,7 +29,11 @@
   background-repeat: no-repeat;
   background-position: center top;
   border-radius: 0.5em;
+<<<<<<< HEAD
   border: 1px solid #ebeff2;
+=======
+  border: 1px solid #EBEFF2;
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 }
 .product-image.missing-image {
   width: 100%;
@@ -39,7 +43,11 @@
   background-repeat: no-repeat;
   background-position: center top;
   border-radius: 0.5em;
+<<<<<<< HEAD
   border: 1px solid #ebeff2;
+=======
+  border: 1px solid #EBEFF2;
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
   border: 1px dashed #d1d8dd;
   position: relative;
 }

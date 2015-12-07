@@ -19,6 +19,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -41,6 +45,10 @@
    "in_filter": 0, 
    "in_list_view": 1, 
    "label": "Operation", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "oldfieldname": "operation_no", 
    "oldfieldtype": "Data", 
@@ -66,6 +74,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Operation Description", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "oldfieldname": "opn_description", 
    "oldfieldtype": "Text", 
@@ -89,6 +101,10 @@
    "ignore_user_permissions": 0, 
    "in_filter": 0, 
    "in_list_view": 0, 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -112,6 +128,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Completed Qty", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "permlevel": 0, 
    "precision": "", 
@@ -135,6 +155,10 @@
    "in_filter": 0, 
    "in_list_view": 1, 
    "label": "Status", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "options": "Pending\nWork in Progress\nCompleted", 
    "permlevel": 0, 
@@ -158,6 +182,10 @@
    "in_filter": 0, 
    "in_list_view": 1, 
    "label": "Workstation", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "oldfieldname": "workstation", 
    "oldfieldtype": "Link", 
@@ -184,6 +212,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Show Time Logs", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -206,6 +238,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Estimated Time and Cost", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -228,6 +264,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Planned Start Time", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "permlevel": 0, 
    "precision": "", 
@@ -250,6 +290,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Planned End Time", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "permlevel": 0, 
    "precision": "", 
@@ -271,6 +315,10 @@
    "ignore_user_permissions": 0, 
    "in_filter": 0, 
    "in_list_view": 0, 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -294,6 +342,10 @@
    "in_filter": 0, 
    "in_list_view": 1, 
    "label": "Operation Time", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "oldfieldname": "time_in_mins", 
    "oldfieldtype": "Currency", 
@@ -318,6 +370,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Hour Rate", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "oldfieldname": "hour_rate", 
    "oldfieldtype": "Currency", 
@@ -342,6 +398,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Planned Operating Cost", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "options": "Company:company:default_currency", 
    "permlevel": 0, 
@@ -365,6 +425,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Actual Time and Cost", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -387,6 +451,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Actual Start Time", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "permlevel": 0, 
    "precision": "", 
@@ -410,6 +478,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Actual End Time", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "permlevel": 0, 
    "precision": "", 
@@ -431,6 +503,10 @@
    "ignore_user_permissions": 0, 
    "in_filter": 0, 
    "in_list_view": 0, 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -454,6 +530,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Actual Operation Time", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "permlevel": 0, 
    "precision": "", 
@@ -477,6 +557,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Actual Operating Cost", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 1, 
    "options": "Company:company:default_currency", 
    "permlevel": 0, 
@@ -501,6 +585,10 @@
    "in_filter": 0, 
    "in_list_view": 0, 
    "label": "Make Time Log", 
+<<<<<<< HEAD
+=======
+   "length": 0, 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
    "no_copy": 0, 
    "permlevel": 0, 
    "precision": "", 
@@ -520,7 +608,12 @@
  "is_submittable": 0, 
  "issingle": 0, 
  "istable": 1, 
+<<<<<<< HEAD
  "modified": "2015-08-21 07:17:18.185276", 
+=======
+ "max_attachments": 0, 
+ "modified": "2015-11-16 06:29:52.476364", 
+>>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
  "modified_by": "Administrator", 
  "module": "Manufacturing", 
  "name": "Production Order Operation", 

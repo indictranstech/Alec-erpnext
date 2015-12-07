@@ -173,7 +173,8 @@ class SellingController(StockController):
 							'uom': p.uom,
 							'batch_no': cstr(p.batch_no).strip(),
 							'serial_no': cstr(p.serial_no).strip(),
-							'name': d.name
+							'name': d.name,
+							'target_warehouse': p.target_warehouse
 						}))
 			else:
 				il.append(frappe._dict({
@@ -184,7 +185,8 @@ class SellingController(StockController):
 					'stock_uom': d.stock_uom,
 					'batch_no': cstr(d.get("batch_no")).strip(),
 					'serial_no': cstr(d.get("serial_no")).strip(),
-					'name': d.name
+					'name': d.name,
+					'target_warehouse': d.target_warehouse
 				}))
 		return il
 
@@ -200,7 +202,7 @@ class SellingController(StockController):
 			
 		delivered_via_si = frappe.db.sql("""select sum(si_item.qty) 
 			from `tabSales Invoice Item` si_item, `tabSales Invoice` si
-			where si_item.parent = si.name and ifnull(si.update_stock, 0) = 1
+			where si_item.parent = si.name and si.update_stock = 1
 			and si_item.so_detail = %s and si.docstatus = 1 
 			and si_item.sales_order = %s
 			and si.name != %s""", (so_detail, so, current_docname))
@@ -217,12 +219,12 @@ class SellingController(StockController):
 		so_warehouse = so_item and so_item[0]["warehouse"] or ""
 		return so_qty, so_warehouse
 
-	def check_stop_sales_order(self, ref_fieldname):
+	def check_stop_or_close_sales_order(self, ref_fieldname):
 		for d in self.get("items"):
 			if d.get(ref_fieldname):
 				status = frappe.db.get_value("Sales Order", d.get(ref_fieldname), "status")
-				if status == "Stopped":
-					frappe.throw(_("Sales Order {0} is stopped").format(d.get(ref_fieldname)))
+				if status in ("Stopped", "Closed"):
+					frappe.throw(_("Sales Order {0} is {1}").format(d.get(ref_fieldname), status))
 
 def check_active_sales_items(obj):
 	for d in obj.get("items"):

@@ -40,13 +40,13 @@ class MaterialRequest(BuyingController):
 
 		for so_no in so_items.keys():
 			for item in so_items[so_no].keys():
-				already_indented = frappe.db.sql("""select sum(ifnull(qty, 0))
+				already_indented = frappe.db.sql("""select sum(qty)
 					from `tabMaterial Request Item`
 					where item_code = %s and sales_order_no = %s and
 					docstatus = 1 and parent != %s""", (item, so_no, self.name))
 				already_indented = already_indented and flt(already_indented[0][0]) or 0
 
-				actual_so_qty = frappe.db.sql("""select sum(ifnull(qty, 0)) from `tabSales Order Item`
+				actual_so_qty = frappe.db.sql("""select sum(qty) from `tabSales Order Item`
 					where parent = %s and item_code = %s and docstatus = 1""", (so_no, item))
 				actual_so_qty = actual_so_qty and flt(actual_so_qty[0][0]) or 0
 
@@ -98,12 +98,11 @@ class MaterialRequest(BuyingController):
 		self.check_modified_date()
 		frappe.db.set(self, 'status', cstr(status))
 		self.update_requested_qty()
-		frappe.msgprint(_("Status updated to {0}").format(_(status)))
 
 	def on_cancel(self):
 		pc_obj = frappe.get_doc('Purchase Common')
 
-		pc_obj.check_for_stopped_status(self.doctype, self.name)
+		pc_obj.check_for_stopped_or_closed_status(self.doctype, self.name)
 		pc_obj.check_docstatus(check = 'Next', doctype = 'Purchase Order', docname = self.name, detail_doctype = 'Purchase Order Item')
 
 		self.update_requested_qty()
@@ -251,7 +250,7 @@ def get_material_requests_based_on_supplier(supplier):
 			where mr.name = mr_item.parent
 			and mr_item.item_code in (%s)
 			and mr.material_request_type = 'Purchase'
-			and ifnull(mr.per_ordered, 0) < 99.99
+			and mr.per_ordered < 99.99
 			and mr.docstatus = 1
 			and mr.status != 'Stopped'""" % ', '.join(['%s']*len(supplier_items)),
 			tuple(supplier_items))

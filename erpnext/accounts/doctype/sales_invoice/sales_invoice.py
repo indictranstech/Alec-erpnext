@@ -52,7 +52,7 @@ class SalesInvoice(SellingController):
 		self.validate_proj_cust()
 		self.validate_with_previous_doc()
 		self.validate_uom_is_integer("stock_uom", "qty")
-		self.check_stop_sales_order("sales_order")
+		self.check_stop_or_close_sales_order("sales_order")
 		self.validate_debit_to_acc()
 		self.validate_fixed_asset_account()
 		self.clear_unallocated_advances("Sales Invoice Advance", "advances")
@@ -117,7 +117,7 @@ class SalesInvoice(SellingController):
 		if cint(self.update_stock) == 1:
 			self.update_stock_ledger()
 
-		self.check_stop_sales_order("sales_order")
+		self.check_stop_or_close_sales_order("sales_order")
 
 		from erpnext.accounts.utils import remove_against_link_from_jv
 		remove_against_link_from_jv(self.doctype, self.name)
@@ -155,7 +155,7 @@ class SalesInvoice(SellingController):
 				'second_join_field': 'so_detail',
 				'overflow_type': 'delivery',
 				'extra_cond': """ and exists(select name from `tabSales Invoice`
-					where name=`tabSales Invoice Item`.parent and ifnull(update_stock, 0) = 1)"""
+					where name=`tabSales Invoice Item`.parent and update_stock = 1)"""
 			},
 			{
 				'source_dt': 'Sales Invoice Item',
@@ -207,8 +207,8 @@ class SalesInvoice(SellingController):
 	def validate_time_logs_are_submitted(self):
 		for d in self.get("items"):
 			if d.time_log_batch:
-				status = frappe.db.get_value("Time Log Batch", d.time_log_batch, "status")
-				if status!="Submitted":
+				docstatus = frappe.db.get_value("Time Log Batch", d.time_log_batch, "docstatus")
+				if docstatus!=1:
 					frappe.throw(_("Time Log Batch {0} must be 'Submitted'").format(d.time_log_batch))
 
 	def set_pos_fields(self, for_validate=False):
@@ -256,7 +256,7 @@ class SalesInvoice(SellingController):
 	def get_advances(self):
 		if not self.is_return:
 			super(SalesInvoice, self).get_advances(self.debit_to, "Customer", self.customer,
-				"Sales Invoice Advance", "advances", "credit", "sales_order")
+				"Sales Invoice Advance", "advances", "credit_in_account_currency", "sales_order")
 
 	def get_company_abbr(self):
 		return frappe.db.sql("select abbr from tabCompany where name=%s", self.company)[0][0]
@@ -359,8 +359,8 @@ class SalesInvoice(SellingController):
 		"""check for does customer belong to same project as entered.."""
 		if self.project_name and self.customer:
 			res = frappe.db.sql("""select name from `tabProject`
-				where name = %s and (customer = %s or
-					ifnull(customer,'')='')""", (self.project_name, self.customer))
+				where name = %s and (customer = %s or customer is null or customer = '')""",
+				(self.project_name, self.customer))
 			if not res:
 				throw(_("Customer {0} does not belong to project {1}").format(self.customer,self.project_name))
 
@@ -379,6 +379,8 @@ class SalesInvoice(SellingController):
 				msgprint(_("Item Code required at Row No {0}").format(d.idx), raise_exception=True)
 
 	def validate_warehouse(self):
+		super(SalesInvoice, self).validate_warehouse()
+		
 		for d in self.get('items'):
 			if not d.warehouse:
 				frappe.throw(_("Warehouse required at Row No {0}").format(d.idx))
@@ -422,7 +424,7 @@ class SalesInvoice(SellingController):
 	def update_packing_list(self):
 		if cint(self.update_stock) == 1:
 			from erpnext.stock.doctype.packed_item.packed_item import make_packing_list
-			make_packing_list(self, 'items')
+			make_packing_list(self)
 		else:
 			self.set('packed_items', [])
 
@@ -434,7 +436,7 @@ class SalesInvoice(SellingController):
 
 		if not warehouse:
 			global_pos_profile = frappe.db.sql("""select name, warehouse from `tabPOS Profile`
-				where ifnull(user,'') = '' and company = %s""", self.company)
+				where (user is null or user = '') and company = %s""", self.company)
 
 			if global_pos_profile:
 				warehouse = global_pos_profile[0][1]
@@ -637,24 +639,6 @@ def get_bank_cash_account(mode_of_payment, company):
 		"account": account
 	}
 
-
-@frappe.whitelist()
-def get_income_account(doctype, txt, searchfield, start, page_len, filters):
-	from erpnext.controllers.queries import get_match_cond
-
-	# income account can be any Credit account,
-	# but can also be a Asset account with account_type='Income Account' in special circumstances.
-	# Hence the first condition is an "OR"
-	return frappe.db.sql("""select tabAccount.name from `tabAccount`
-			where (tabAccount.report_type = "Profit and Loss"
-					or tabAccount.account_type in ("Income Account", "Temporary"))
-				and tabAccount.is_group=0
-				and tabAccount.docstatus!=2
-				and tabAccount.company = '%(company)s'
-				and tabAccount.%(key)s LIKE '%(txt)s'
-				%(mcond)s""" % {'company': filters['company'], 'key': searchfield,
-			'txt': "%%%s%%" % frappe.db.escape(txt), 'mcond':get_match_cond(doctype)})
-
 @frappe.whitelist()
 def make_delivery_note(source_name, target_doc=None):
 	def set_missing_values(source, target):
@@ -685,7 +669,8 @@ def make_delivery_note(source_name, target_doc=None):
 				"sales_order": "against_sales_order",
 				"so_detail": "so_detail"
 			},
-			"postprocess": update_item
+			"postprocess": update_item,
+			"condition": lambda doc: doc.delivered_by_supplier!=1
 		},
 		"Sales Taxes and Charges": {
 			"doctype": "Sales Taxes and Charges",
