@@ -10,10 +10,7 @@ frappe.views.calendar["Time Log"] = {
 		"allDay": "allDay"
 	},
 	gantt: true,
-<<<<<<< HEAD
-=======
 	gantt_scale: "hours",
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 	filters: [
 		{
 			"fieldtype": "Link",

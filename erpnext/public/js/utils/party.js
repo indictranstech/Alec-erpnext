@@ -7,11 +7,7 @@ erpnext.utils.get_party_details = function(frm, method, args, callback) {
 		method = "erpnext.accounts.party.get_party_details";
 	}
 	if(!args) {
-<<<<<<< HEAD
-		if(frm.doc.customer) {
-=======
 		if(frm.doctype != "Purchase Order" && frm.doc.customer) {
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 			args = {
 				party: frm.doc.customer,
 				party_type: "Customer",
@@ -24,12 +20,6 @@ erpnext.utils.get_party_details = function(frm, method, args, callback) {
 				price_list: frm.doc.buying_price_list
 			};
 		}
-<<<<<<< HEAD
-		args.posting_date = frm.doc.transaction_date;
-	}
-	if(!args) return;
-
-=======
 		
 		if (args) {
 			args.posting_date = frm.doc.posting_date || frm.doc.transaction_date;
@@ -42,7 +32,6 @@ erpnext.utils.get_party_details = function(frm, method, args, callback) {
 			args.posting_date, args.party_type=="Customer" ? "customer": "supplier")) return;
 	}
 	
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 	args.currency = frm.doc.currency;
 	args.company = frm.doc.company;
 	args.doctype = frm.doc.doctype;
@@ -64,11 +53,7 @@ erpnext.utils.get_address_display = function(frm, address_field, display_field) 
 	if(frm.updating_party_details) return;
 	
 	if(!address_field) {
-<<<<<<< HEAD
-		if(frm.doc.customer) {
-=======
 		if(frm.doctype != "Purchase Order" && frm.doc.customer) {
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 			address_field = "customer_address";
 		} else if(frm.doc.supplier) {
 			address_field = "supplier_address";
@@ -84,8 +69,6 @@ erpnext.utils.get_address_display = function(frm, address_field, display_field) 
 				if(r.message){
 					frm.set_value(display_field, r.message)
 				}
-<<<<<<< HEAD
-=======
 				
 				if(frappe.meta.get_docfield(frm.doc.doctype, "taxes")) {
 					if(!erpnext.utils.validate_mandatory(frm, "Customer/Supplier", 
@@ -95,7 +78,6 @@ erpnext.utils.get_address_display = function(frm, address_field, display_field) 
 						frm.doc.posting_date || frm.doc.transaction_date, address_field)) return;
 				} else return;
 				
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 				frappe.call({
 					method: "erpnext.accounts.party.set_taxes",
 					args: {
@@ -131,8 +113,6 @@ erpnext.utils.get_contact_details = function(frm) {
 		})
 	}
 }
-<<<<<<< HEAD
-=======
 
 erpnext.utils.validate_mandatory = function(frm, label, value, trigger_on) {
 	if(!value) {
@@ -143,4 +123,3 @@ erpnext.utils.validate_mandatory = function(frm, label, value, trigger_on) {
 	}
 	return true;
 }
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0

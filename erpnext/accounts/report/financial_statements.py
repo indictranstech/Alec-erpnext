@@ -80,10 +80,6 @@ def get_data(company, root_type, balance_must_be, period_list, ignore_closing_en
 		return None
 
 	accounts, accounts_by_name = filter_accounts(accounts)
-<<<<<<< HEAD
-	gl_entries_by_account = get_gl_entries(company, period_list[0]["from_date"], period_list[-1]["to_date"],
-		accounts[0].lft, accounts[0].rgt, ignore_closing_entries=ignore_closing_entries)
-=======
 
 	gl_entries_by_account = {}
 	for root in frappe.db.sql("""select lft, rgt from tabAccount
@@ -91,7 +87,6 @@ def get_data(company, root_type, balance_must_be, period_list, ignore_closing_en
 		set_gl_entries_by_account(company, period_list[0]["from_date"],
 			period_list[-1]["to_date"],root.lft, root.rgt, gl_entries_by_account,
 			ignore_closing_entries=ignore_closing_entries)
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 
 	calculate_values(accounts_by_name, gl_entries_by_account, period_list)
 	accumulate_values_into_parents(accounts, accounts_by_name, period_list)
@@ -111,10 +106,6 @@ def calculate_values(accounts_by_name, gl_entries_by_account, period_list):
 				if entry.posting_date <= period.to_date:
 					d[period.key] = d.get(period.key, 0.0) + flt(entry.debit) - flt(entry.credit)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 def accumulate_values_into_parents(accounts, accounts_by_name, period_list):
 	"""accumulate children's values in parent accounts"""
 	for d in reversed(accounts):
@@ -156,17 +147,6 @@ def prepare_data(accounts, balance_must_be, period_list):
 	return out
 
 def add_total_row(out, balance_must_be, period_list):
-<<<<<<< HEAD
-	row = {
-		"account_name": "'" + _("Total ({0})").format(balance_must_be) + "'",
-		"account": None
-	}
-	for period in period_list:
-		row[period.key] = out[0].get(period.key, 0.0)
-		out[0][period.key] = ""
-
-	out.append(row)
-=======
 	total_row = {
 		"account_name": "'" + _("Total ({0})").format(balance_must_be) + "'",
 		"account": None
@@ -181,7 +161,6 @@ def add_total_row(out, balance_must_be, period_list):
 			row[period.key] = ""
 
 	out.append(total_row)
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 
 	# blank row after Total
 	out.append({})
@@ -230,12 +209,8 @@ def sort_root_accounts(roots):
 
 	roots.sort(compare_roots)
 
-<<<<<<< HEAD
-def get_gl_entries(company, from_date, to_date, root_lft, root_rgt, ignore_closing_entries=False):
-=======
 def set_gl_entries_by_account(company, from_date, to_date, root_lft, root_rgt, gl_entries_by_account,
 		ignore_closing_entries=False):
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 	"""Returns a dict like { "account": [gl entries], ... }"""
 	additional_conditions = []
 
@@ -261,10 +236,6 @@ def set_gl_entries_by_account(company, from_date, to_date, root_lft, root_rgt, g
 		},
 		as_dict=True)
 
-<<<<<<< HEAD
-	gl_entries_by_account = {}
-=======
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 	for entry in gl_entries:
 		gl_entries_by_account.setdefault(entry.account, []).append(entry)
 

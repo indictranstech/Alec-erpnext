@@ -5,12 +5,9 @@ frappe.listview_settings['Sales Order'] = {
         if(doc.status==="Stopped") {
 			return [__("Stopped"), "darkgrey", "status,=,Stopped"];
 
-<<<<<<< HEAD
-=======
         } else if(doc.status==="Closed"){
         	return [__("Closed"), "green", "status,=,Closed"];
 
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
         } else if (doc.order_type !== "Maintenance"
 			&& flt(doc.per_delivered, 2) < 100 && frappe.datetime.get_diff(doc.delivery_date) < 0) {
 			// to bill & overdue
@@ -47,13 +44,6 @@ frappe.listview_settings['Sales Order'] = {
 	onload: function(listview) {
 		var method = "erpnext.selling.doctype.sales_order.sales_order.stop_or_unstop_sales_orders";
 
-<<<<<<< HEAD
-		listview.page.add_menu_item(__("Set as Stopped"), function() {
-			listview.call_for_selected_items(method, {"status": "Stop"});
-		});
-
-		listview.page.add_menu_item(__("Set as Unstopped"), function() {
-=======
 		listview.page.add_menu_item(__("Close"), function() {
 			listview.call_for_selected_items(method, {"status": "Closed"});
 		});
@@ -63,7 +53,6 @@ frappe.listview_settings['Sales Order'] = {
 		});
 
 		listview.page.add_menu_item(__("Re-open"), function() {
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 			listview.call_for_selected_items(method, {"status": "Unstop"});
 		});
 

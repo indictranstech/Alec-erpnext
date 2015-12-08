@@ -20,10 +20,6 @@ $.extend(shopping_cart, {
 		if(!full_name || full_name==="Guest") {
 			if(localStorage) {
 				localStorage.setItem("last_visited", window.location.pathname);
-<<<<<<< HEAD
-				localStorage.setItem("pending_add_to_cart", opts.item_code);
-=======
->>>>>>> ca4c663e073bba1971aa1e9ad76ce6f000eae2a0
 			}
 			window.location.href = "/login";
 		} else {
