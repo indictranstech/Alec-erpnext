@@ -265,27 +265,29 @@ class SalesOrder(SellingController):
 		if exc_list:
 			frappe.throw('\n'.join(exc_list))
 
-	def update_delivery_status(self, po_name):
+	def update_delivery_status(self):
 		"""Update delivery status from Purchase Order for drop shipping"""
 		tot_qty, delivered_qty = 0.0, 0.0
 
 		for item in self.items:
 			if item.delivered_by_supplier:
-				item_delivered_qty  = frappe.db.sql("""select qty
+				item_delivered_qty  = frappe.db.sql("""select sum(qty)
 					from `tabPurchase Order Item` poi, `tabPurchase Order` po
-					where poi.prevdoc_docname = %s
+					where poi.prevdoc_detail_docname = %s
 						and poi.prevdoc_doctype = 'Sales Order'
 						and poi.item_code = %s
 						and poi.parent = po.name
-						and po.status = 'Delivered'""", (self.name, item.item_code))
+						and po.docstatus = 1
+						and po.status = 'Delivered'""", (item.name, item.item_code))
 
 				item_delivered_qty = item_delivered_qty[0][0] if item_delivered_qty else 0
-				item.db_set("delivered_qty", item_delivered_qty)
+				item.db_set("delivered_qty", flt(item_delivered_qty), update_modified=False)
 
 			delivered_qty += item.delivered_qty
 			tot_qty += item.qty
-
-		frappe.db.set_value("Sales Order", self.name, "per_delivered", flt(delivered_qty/tot_qty) * 100)
+			
+		frappe.db.set_value("Sales Order", self.name, "per_delivered", flt(delivered_qty/tot_qty) * 100, 
+		update_modified=False)
 
 def get_list_context(context=None):
 	from erpnext.controllers.website_list_for_contact import get_list_context
@@ -531,8 +533,24 @@ def make_purchase_order_for_drop_shipment(source_name, for_supplier, target_doc=
 		default_price_list = frappe.get_value("Supplier", for_supplier, "default_price_list")
 		if default_price_list:
 			target.buying_price_list = default_price_list
+		
+		if any( item.delivered_by_supplier==1 for item in source.items):
+			if source.shipping_address_name:
+				target.customer_address = source.shipping_address_name
+				target.customer_address_display = source.shipping_address
+			else:
+				target.customer_address = source.customer_address
+				target.customer_address_display = source.address_display
+			
+			target.customer_contact_person = source.contact_person
+			target.customer_contact_display = source.contact_display
+			target.customer_contact_mobile = source.contact_mobile
+			target.customer_contact_email = source.contact_email
+			
+		else:
+			target.customer = ""
+			target.customer_name = ""
 
-		target.delivered_by_supplier = 1
 		target.run_method("set_missing_values")
 		target.run_method("calculate_taxes_and_totals")
 
@@ -543,14 +561,6 @@ def make_purchase_order_for_drop_shipment(source_name, for_supplier, target_doc=
 	doclist = get_mapped_doc("Sales Order", source_name, {
 		"Sales Order": {
 			"doctype": "Purchase Order",
-			"field_map": {
-				"customer_address": "customer_address",
-				"contact_person": "customer_contact_person",
-				"address_display": "customer_address_display",
-				"contact_display": "customer_contact_display",
-				"contact_mobile": "customer_contact_mobile",
-				"contact_email": "customer_contact_email",
-			},
 			"field_no_map": [
 				"address_display",
 				"contact_display",
