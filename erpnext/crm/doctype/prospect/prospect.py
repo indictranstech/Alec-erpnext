@@ -23,7 +23,7 @@ class Prospect(SellingController):
 
 		if not self.prospect_owner:
 			self.prospect_owner = self.owner
-		if self.owner != self.prospect_owner
+		if self.owner != self.prospect_owner:
 			self.owner = self.prospect_owner	
 
 	def validate(self):
