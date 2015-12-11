@@ -30,6 +30,3 @@ erpnext.ProspectController = frappe.ui.form.Controller.extend({
 });
 
 $.extend(cur_frm.cscript, new erpnext.ProspectController({frm: cur_frm}));
-
-
-
