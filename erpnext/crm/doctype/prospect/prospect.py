@@ -23,7 +23,8 @@ class Prospect(SellingController):
 
 		if not self.prospect_owner:
 			self.prospect_owner = self.owner
-			
+		if self.owner != self.prospect_owner:
+			self.owner = self.prospect_owner	
 
 	def validate(self):
 		self._prev = frappe._dict({
@@ -55,12 +56,12 @@ class Prospect(SellingController):
 	def check_email_id_is_unique(self):
 		if self.email_id:
 			# validate email is unique
-			duplicate_leads = frappe.db.sql_list("""select name from tabProspect 
+			duplicate_prospects = frappe.db.sql_list("""select name from tabProspect 
 				where email_id=%s and name!=%s""", (self.email_id, self.name))
 
-			if duplicate_leads:
+			if duplicate_prospects:
 				frappe.throw(_("Email id must be unique, already exists for {0}")
-					.format(comma_and(duplicate_leads)), frappe.DuplicateEntryError)
+					.format(comma_and(duplicate_prospects)), frappe.DuplicateEntryError)
 
 	def on_trash(self):
 		frappe.db.sql("""update `tabIssue` set lead='' where lead=%s""",

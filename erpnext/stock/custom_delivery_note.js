@@ -78,7 +78,7 @@ cur_frm.cscript.get_alternative_items= function(doc,cdt,cdn){
                                 d.item_name = alter_item["item_name"]
                                 d.manufacturer_pn = alter_item["manufacturer_pn"]
                                 d.description = alter_item["description"]
-                                d.old_oem = d.current_oem
+                                d.old_oem = d.oem_part_number
                                 d.current_oem = alter_item["oem_part_number"]
                                 d.stock_uom = alter_item["stock_uom"]
                                 d.sales_item_name = d.item_code
@@ -86,7 +86,7 @@ cur_frm.cscript.get_alternative_items= function(doc,cdt,cdn){
                                   d.actual_qty =alter_item["qty"]
                                 }
                                 if (alter_item["oem_part_number"] !=  d.old_oem){
-                                  d.oem_part_number = alter_item["oem_part_number"]+"(Same as "+(d.old_oem)+")"
+                                  d.oem_part_number = alter_item["oem_part_number"]+" (Same as "+(d.old_oem)+")"
                                 }
                                 else{
                                   d.oem_part_number = alter_item["oem_part_number"]
