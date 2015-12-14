@@ -559,7 +559,7 @@ def get_alternative_item_details(doc):
 	if doc:
 		for d in doc.get('items'):
 			result = {}
-			if d.get("sales_item_name"):
+			if d.get("item_code"):
 				result = frappe.db.sql(""" SELECT
 						   distinct(qi.item_code),
 						   qi.parent,
@@ -579,16 +579,15 @@ def get_alternative_item_details(doc):
 						   ite.item_code = bi.item_code
 						where
 						qi.parent='{0}'
-						AND bi.warehouse='{1}' AND bi.actual_qty!=0  AND qi.item_code!='{2}' """.format(d["sales_item_name"],d["warehouse"],d["sales_item_name"]),as_dict=1)
-				alteritem_dic[d["sales_item_name"]]=result
-				item_dict[d["sales_item_name"]] = d["qty"]
+						AND bi.warehouse='{1}' AND bi.actual_qty!=0  AND qi.item_code!='{2}' """.format(d["item_code"],d["warehouse"],d["item_code"]),as_dict=1)
+				alteritem_dic[d["item_code"]]=result
+				item_dict[d["item_code"]] = d["qty"]
 	return alteritem_dic,item_dict
 
 
-
-def update_sales_item_name(doc,method):
+def update_item_code(doc,method):
 	for row in doc.get('items'):
-		row.sales_item_name = row.item_code
+		row.item_code = row.item_code
 		row.old_oem = row.current_oem
 
 
@@ -722,7 +721,7 @@ def set_alternative_item_details(alter_dic,doc):
 				d.old_oem = d.current_oem
 				d.current_oem = aitem_doc.oem_part_number
 				d.stock_uom = aitem_doc.stock_uom
-				d.sales_item_name = d.item_code
+				d.item_code = d.item_code
 				if alter_dic[original_item]["qty"] < d.qty:
 					d.actual_qty =alter_dic.get(original_item)["qty"]
 				if not (aitem_doc.oem_part_number ==  d.old_oem):
