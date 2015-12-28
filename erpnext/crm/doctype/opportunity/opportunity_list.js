@@ -17,5 +17,15 @@ frappe.listview_settings['Opportunity'] = {
 		listview.page.add_menu_item(__("Set as Closed"), function() {
 			listview.call_for_selected_items(method, {"status": "Closed"});
 		});
+	},
+	refresh: function(me) {
+		// add my documents
+		me.page.add_sidebar_item(__("My Documents"), function() {
+			var assign_filter = me.filter_list.get_filter("owner");
+			assign_filter && assign_filter.remove(true);
+
+			me.filter_list.add_filter(me.doctype, "contact_by", '=', user);
+			me.run();
+		}, ".assigned-to-me");
 	}
 };
