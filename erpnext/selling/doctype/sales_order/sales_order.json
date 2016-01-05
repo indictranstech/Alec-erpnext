@@ -2802,7 +2802,11 @@
  "issingle": 0, 
  "istable": 0, 
  "max_attachments": 0, 
+<<<<<<< HEAD
  "modified": "2015-12-17 16:19:40.324514", 
+=======
+ "modified": "2015-12-30 11:28:51.114729", 
+>>>>>>> fc8daac6e7d3d9e08921113549363762ace1ae67
  "modified_by": "Administrator", 
  "module": "Selling", 
  "name": "Sales Order", 
@@ -2824,6 +2828,26 @@
    "report": 1, 
    "role": "Sales User", 
    "set_user_permissions": 1, 
+   "share": 1, 
+   "submit": 1, 
+   "write": 1
+  }, 
+  {
+   "amend": 1, 
+   "apply_user_permissions": 0, 
+   "cancel": 1, 
+   "create": 1, 
+   "delete": 1, 
+   "email": 1, 
+   "export": 1, 
+   "if_owner": 0, 
+   "import": 0, 
+   "permlevel": 0, 
+   "print": 1, 
+   "read": 1, 
+   "report": 1, 
+   "role": "Sales Manager", 
+   "set_user_permissions": 0, 
    "share": 1, 
    "submit": 1, 
    "write": 1
