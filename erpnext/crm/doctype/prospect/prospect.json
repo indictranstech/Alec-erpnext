@@ -1211,7 +1211,7 @@
    "bold": 0, 
    "collapsible": 0, 
    "fieldname": "service_zip_code", 
-   "fieldtype": "Int", 
+   "fieldtype": "Data", 
    "hidden": 0, 
    "ignore_user_permissions": 0, 
    "in_filter": 0, 
