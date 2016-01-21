@@ -51,7 +51,13 @@ class Prospect(SellingController):
 		self.add_calendar_event()
 
 	def add_calendar_event(self, opts=None, force=False):
-		pass
+		super(Prospect, self).add_calendar_event({
+			"owner": self.prospect_owner,
+			"starts_on": self.contact_date,
+			"subject": ('Contact ' + cstr(self.prospect_name)),
+			"description": ('Contact ' + cstr(self.prospect_name)) + \
+				(self.contact_by and ('. By : ' + cstr(self.contact_by)) or '')
+		}, force)
 
 	def check_email_id_is_unique(self):
 		if self.email_id:
