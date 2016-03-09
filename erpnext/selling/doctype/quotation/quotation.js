@@ -158,7 +158,6 @@ cur_frm.cscript.on_submit = function(doc, cdt, cdn) {
 }
 
 {% include 'selling/custom_query_report.js' %}
-{% include 'erpnext_controllers/erpnext_controllers/price_floor_controls.js' %}
 
 cur_frm.script_manager.make(erpnext.selling.CustomQueryReport);
 
